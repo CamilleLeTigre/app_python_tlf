@@ -79,7 +79,7 @@ def tour_ia(p, signe_ia, signe_joueur):
         (0,4,8), (2,4,6)
     ]
 
-    # 1. est ce que l'ia peut gagner direct ?
+    # 1. est ce que l'ia peut gagner directr ?
     # on cherche une combinaison où l'ia a déjà 2 pions et la 3ème case est libre
     for a, b, c in combinaisons:
         if p[a] == p[b] == signe_ia and p[c] not in ["X", "O"]:
