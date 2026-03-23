@@ -1,0 +1,215 @@
+##### on crée le plateau du jeu, qui représente le pavé numérique du clavier pour bien pouvoir se représenter où placer les pions
+#on a fait correspondre le plateau au pavé numérique pour simplifier le jeu 
+def afficher_plateau(p):
+    # on affiche les 3 lignes du plateau de haut en bas
+    # p[6] p[7] p[8] = ligne du haut, p[3] p[4] p[5] = ligne du milieu, p[0] p[1] p[2] = ligne du bas
+    # les "--+---+--" c'est juste pour séparer visuellement les lignes
+    print()
+    print(p[6], "|", p[7], "|", p[8])
+    print("--+---+--")
+    print(p[3], "|", p[4], "|", p[5])
+    print("--+---+--")
+    print(p[0], "|", p[1], "|", p[2])
+    print()
+ 
+ 
+# combinaisons de toutes les victoires possibles ( pas beacoup donc on a fait comme ça c'était plus simple)
+def victoire(p, signe):
+    # on liste toutes les façons de gagner : 3 lignes, 3 colonnes, 2 diagonales
+    combinaisons = [
+        (0,1,2), (3,4,5), (6,7,8),  # les 3 lignes horizontales
+        (0,3,6), (1,4,7), (2,5,8),  # les 3 colonnes verticales
+        (0,4,8), (2,4,6)             # les 2 diagonales
+    ]
+    # on parcourt chaque combinaison et on vérifie si les 3 cases sont au même signe
+    for a, b, c in combinaisons:
+        if p[a] == p[b] == p[c] == signe:
+            return True
+    # si aucune combinaison trouvée, pas de victoire
+    return False
+ 
+ 
+# vertion du jeu classique
+def tour_joueur_classique(p, signe, nom):
+    # on boucle jusqu'à ce que le joueur entre un coup valide
+    while True:
+        choix = input(f"Tour de {nom} ({signe}) — touche (1-9) : ")
+        # on vérifie que le choix est bien un chiffre entre 1 et 9
+        if choix in "123456789":
+            idx = int(choix) - 1  # on convertit en indice de liste (1 -> 0, 2 -> 1, etc.)
+            if p[idx] not in ["X", "O"]:  # on vérifie que la case est libre
+                p[idx] = signe  # on place le pion
+                break
+            else:
+                print("Case occupée.")
+        else:
+            print("Touche invalide.")
+ 
+ 
+# autre variente où on peut avoir que 3 pions max et où c'est impossible de faire égalité 
+def tour_joueur_infini(p, signe, nom, coups):
+    while True:
+        #le try est rajouté par IA parce que sinon ça marchait pas 
+        try:
+            place = int(input(f"Tour de {nom} ({signe}) — choisissez une case (1-9) : ")) - 1 #le -1 aussi, on avait oublié que ça partait de l'indice 0 et pas 1 
+            if place in range(9) and p[place] not in ["X","O"]:
+ 
+                # si le joueur a déjà 3 pions, on enlève le plus ancien avant d'en poser un nouveau
+                if len(coups[signe]) == 3:
+                    ancien = coups[signe].pop(0)  # on récupère l'indice du pion le plus ancien
+                    p[ancien] = " "   #faudrait changer ça pour mettre les chiffres correspondants à la bonne case au lieu de rien mettre
+ 
+                p[place] = signe  # on place le nouveau pion
+                coups[signe].append(place)  # on mémorise sa position dans la liste des coups
+                break
+ 
+            else:
+                print("Case invalide ou occupée.")
+        except ValueError:
+            print("Veuillez entrer un nombre.")
+
+
+# IA basique : que des if et for, pas de minimax
+# l'ia réfléchit en 3 étapes : gagner, bloquer, jouer stratégique
+def tour_ia(p, signe_ia, signe_joueur):
+    # on réutilise les mêmes combinaisons gagnantes que dans victoire()
+    combinaisons = [
+        (0,1,2), (3,4,5), (6,7,8),
+        (0,3,6), (1,4,7), (2,5,8),
+        (0,4,8), (2,4,6)
+    ]
+
+    # 1. est ce que l'ia peut gagner direct ?
+    # on cherche une combinaison où l'ia a déjà 2 pions et la 3ème case est libre
+    for a, b, c in combinaisons:
+        if p[a] == p[b] == signe_ia and p[c] not in ["X", "O"]:
+            p[c] = signe_ia  # on complète la ligne pour gagner
+            return
+        if p[a] == p[c] == signe_ia and p[b] not in ["X", "O"]:
+            p[b] = signe_ia
+            return
+        if p[b] == p[c] == signe_ia and p[a] not in ["X", "O"]:
+            p[a] = signe_ia
+            return
+
+    # 2. est ce que le joueur va gagner ? si oui l'ia bloque
+    # même logique mais cette fois on cherche 2 pions adverses pour les bloquer
+    for a, b, c in combinaisons:
+        if p[a] == p[b] == signe_joueur and p[c] not in ["X", "O"]:
+            p[c] = signe_ia  # on pose notre pion pour bloquer la victoire adverse
+            return
+        if p[a] == p[c] == signe_joueur and p[b] not in ["X", "O"]:
+            p[b] = signe_ia
+            return
+        if p[b] == p[c] == signe_joueur and p[a] not in ["X", "O"]:
+            p[a] = signe_ia
+            return
+
+    # 3. prendre le centre si libre
+    # le centre (case 4) est la meilleure case stratégiquement car elle fait partie de 4 combinaisons gagnantes
+    if p[4] not in ["X", "O"]:
+        p[4] = signe_ia
+        return
+
+    # 4. prendre un coin libre
+    # les coins sont les deuxièmes meilleures cases car ils font partie de 3 combinaisons chacun
+    for coin in [0, 2, 6, 8]:
+        if p[coin] not in ["X", "O"]:
+            p[coin] = signe_ia
+            return
+
+    # 5. prendre n'importe quelle case libre
+    # si aucune case stratégique n'est dispo, on prend la première case libre qu'on trouve
+    for i in range(9):
+        if p[i] not in ["X", "O"]:
+            p[i] = signe_ia
+            return
+
+
+# lancer le jeu, en demandant au joeur de remplir son nom, le type de jeu qu'il veut etc 
+def jouer():
+    print("Choisissez un mode de jeu :")
+    print("1 - Mode classique")
+    print("2 - Mode infini (3 pions max)")
+    print("3 - Joueur vs IA")
+ 
+    # on boucle jusqu'à ce que le joueur entre un mode valide
+    while True:
+        mode = input("Votre choix (1, 2 ou 3) : ")
+        if mode in ["1", "2", "3"]:
+            break
+        print("Choix invalide.")
+ 
+    plateau = ["1","2","3","4","5","6","7","8","9"]  # plateau initial avec les chiffres 1-9
+    signe = "X"  # X commence toujours en premier
+ 
+    # en mode IA, le joueur O est remplacé par l'IA
+    if mode == "3":
+        nomX = input("Nom du joueur X : ")
+        nomO = "L'IA"
+    else:
+        nomX = input("Nom du joueur X : ")
+        nomO = input("Nom du joueur O : ")
+
+    noms = {"X": nomX, "O": nomO}  # dictionnaire pour retrouver le nom à partir du signe
+    coups = {"X": [], "O": []}  # dictionnaire qui mémorise les positions des pions (utile pour le mode infini)
+ 
+    # boucle principale du jeu, un tour par joueur jusqu'à victoire ou match nul
+    while True:
+        afficher_plateau(plateau)
+ 
+        # en mode IA c'est l'ia qui joue quand c'est le tour de O, sinon c'est un joueur humain
+        if mode == "3" and signe == "O":
+            print("L'IA réfléchit...")
+            tour_ia(plateau, "O", "X")
+        elif mode == "1":
+            tour_joueur_classique(plateau, signe, noms[signe])
+        else:
+            tour_joueur_infini(plateau, signe, noms[signe], coups)
+ 
+        # on vérifie si le joueur qui vient de jouer a gagné
+        if victoire(plateau, signe):
+            afficher_plateau(plateau)
+            if mode == "3" and signe == "O":
+                print("L'IA t'a mis une raclée 💀")
+            else:
+                print(f"{noms[signe]} tia gagné BG 🦾🦾 ")
+            break
+ 
+        # en mode classique et IA, si toutes les cases sont prises c'est match nul
+        if mode in ["1", "3"] and all(case in ["X", "O"] for case in plateau):
+            afficher_plateau(plateau)
+            print("Match nul")
+            break
+ 
+        # on alterne entre X et O pour le prochain tour
+        signe = "O" if signe == "X" else "X"
+ 
+ 
+jouer()
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+#ekip2pythoneurs
+#çapythonefort🦾🦾
+#quedupythondanslcrâne
+#grospythonneurs
+#diegolepetitcodeur
