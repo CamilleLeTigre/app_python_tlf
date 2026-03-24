@@ -171,7 +171,7 @@ def jouer():
         if victoire(plateau, signe):
             afficher_plateau(plateau)
             if mode == "3" and signe == "O":
-                print("L'IA t'a mis une raclée 💀")
+                print("Cooked MEC")
             else:
                 print(f"{noms[signe]} tia gagné BG 🦾🦾 ")
             break
